@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Heart } from "lucide-react";
 import { calculateLove } from "@/utils/loveCalculator";
 import { LoveResult } from "./LoveResult";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 const LoveCalculator = () => {
   const [name1, setName1] = useState("");
@@ -16,15 +18,50 @@ const LoveCalculator = () => {
     loveTerm: string;
     description: string;
   } | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (name1.trim() === "" || name2.trim() === "") return;
     
-    const calculatedResult = calculateLove(name1, name2);
-    setResult(calculatedResult);
-    setShowResult(true);
+    setIsCalculating(true);
+    
+    try {
+      // Calculate love result
+      const calculatedResult = calculateLove(name1, name2);
+      setResult(calculatedResult);
+      
+      // Store result in Supabase
+      const { error } = await supabase
+        .from('love_results')
+        .insert({
+          name1: name1.trim(),
+          name2: name2.trim(),
+          love_percentage: calculatedResult.percentage,
+          love_term: calculatedResult.loveTerm
+        });
+        
+      if (error) {
+        console.error("Error saving result:", error);
+        toast({
+          title: "Couldn't save your result",
+          description: "Your love calculation was completed but couldn't be saved to our database.",
+          variant: "destructive",
+        });
+      }
+      
+      setShowResult(true);
+    } catch (error) {
+      console.error("Calculation error:", error);
+      toast({
+        title: "Calculation error",
+        description: "Something went wrong during the love calculation.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   const handleReset = () => {
@@ -83,10 +120,10 @@ const LoveCalculator = () => {
             <Button 
               type="submit" 
               className="w-full button-gradient text-white font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
-              disabled={name1.trim() === "" || name2.trim() === ""}
+              disabled={name1.trim() === "" || name2.trim() === "" || isCalculating}
             >
               <Heart size={18} fill="white" className="mr-1" />
-              Calculate Love
+              {isCalculating ? "Calculating..." : "Calculate Love"}
             </Button>
           </form>
         </div>

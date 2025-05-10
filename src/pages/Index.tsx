@@ -2,8 +2,11 @@
 import React from "react";
 import LoveCalculator from "@/components/LoveCalculator";
 import { Heart } from "lucide-react";
+import { useLoveCalculations } from "@/hooks/useLoveCalculations";
 
 const Index = () => {
+  const { totalCalculations } = useLoveCalculations(0); // Just get count, not actual records
+  
   const randomHearts = Array.from({ length: 10 }, (_, i) => ({
     id: i,
     size: Math.floor(Math.random() * 20) + 10, // 10-30px
@@ -12,6 +15,11 @@ const Index = () => {
     delay: `${Math.random() * 5}s`,
     duration: `${Math.random() * 5 + 5}s`, // 5-10s
   }));
+
+  // Calculate love calculation count to display
+  const calculationCount = totalCalculations > 0 
+    ? totalCalculations + 9478 // Add to the existing "Over 9,478 people" to keep the spirit
+    : 9478; // Fallback to the original number
 
   return (
     <div className="min-h-screen py-8 relative overflow-hidden">
@@ -40,7 +48,7 @@ const Index = () => {
         <footer className="mt-8 text-center text-sm text-love-600">
           <p>© {new Date().getFullYear()} Gen Z Love Calculator</p>
           <p className="mt-1">
-            Already matched over 9,000 couples! Will you be next? 💖
+            Already matched over {calculationCount.toLocaleString()} couples! Will you be next? 💖
           </p>
         </footer>
       </div>
