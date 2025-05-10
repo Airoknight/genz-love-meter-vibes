@@ -5,99 +5,196 @@ export interface LoveResult {
   description: string;
 }
 
-// Love term mapping according to percentage
-const loveTerms: Record<string, { term: string; description: string }> = {
-  "0-10": {
-    term: "Brother / Sister",
-    description: "You're definitely in the friend zone! Keep it platonic.",
+// Gen Z love terms with percentage ranges and descriptions
+const loveTerms: Array<{
+  term: string;
+  minRange: number;
+  maxRange: number;
+  description: string;
+}> = [
+  {
+    term: "True Love",
+    minRange: 90,
+    maxRange: 100,
+    description: "This is the real deal! The universe wants you two together."
   },
-  "11-30": {
-    term: "Benching",
-    description: "They're keeping you as an option while exploring others. Don't get too attached!",
+  {
+    term: "Ride or Die",
+    minRange: 80,
+    maxRange: 89,
+    description: "You've found your person. Through thick and thin, you've got each other's back!"
   },
-  "31-50": {
+  {
+    term: "Soulmates",
+    minRange: 70,
+    maxRange: 79,
+    description: "Your souls are connected on another level. This is more than just a crush!"
+  },
+  {
     term: "Situationship",
-    description: "It's complicated! Not quite dating, not quite friends - classic gray area.",
+    minRange: 60,
+    maxRange: 69,
+    description: "It's complicated! Not quite dating, not quite friends - classic gray area."
   },
-  "51-70": {
+  {
     term: "Fling",
-    description: "Short-term but fun! Enjoy the moment but don't expect forever.",
+    minRange: 50,
+    maxRange: 59,
+    description: "Short-term but fun! Enjoy the moment but don't expect forever."
   },
-  "71-85": {
-    term: "Sneaky Link",
-    description: "There's definitely chemistry, but you're keeping it on the down-low.",
+  {
+    term: "Benching",
+    minRange: 40,
+    maxRange: 49,
+    description: "They're keeping you as an option while exploring others. Don't get too attached!"
   },
-  "86-99": {
-    term: "Main Character Love",
-    description: "This is your rom-com moment! You're meant to be together.",
+  {
+    term: "Ghosting",
+    minRange: 30,
+    maxRange: 39,
+    description: "One day they're here, the next they've disappeared without a trace. Classic ghosting behavior."
   },
-  "100": {
-    term: "Hard Launch",
-    description: "Soulmates alert! Time to make it Instagram official!",
+  {
+    term: "Friendzone",
+    minRange: 20,
+    maxRange: 29,
+    description: "\"Let's just be friends\" energy. Time to move on to someone who sees your value."
   },
-};
+  {
+    term: "Slow Fade",
+    minRange: 10,
+    maxRange: 19,
+    description: "The texting gets slower, the dates get cancelled... they're gradually pulling away."
+  },
+  {
+    term: "Siblings",
+    minRange: 0,
+    maxRange: 9,
+    description: "You're definitely in the friend zone! Keep it platonic."
+  }
+];
 
-// Gets the love term based on percentage
-const getLoveTerm = (percentage: number): { term: string; description: string } => {
-  if (percentage === 100) return loveTerms["100"];
-  if (percentage >= 86) return loveTerms["86-99"];
-  if (percentage >= 71) return loveTerms["71-85"];
-  if (percentage >= 51) return loveTerms["51-70"];
-  if (percentage >= 31) return loveTerms["31-50"];
-  if (percentage >= 11) return loveTerms["11-30"];
-  return loveTerms["0-10"];
-};
-
-// FLAMES algorithm implementation
-export const calculateLove = (name1: string, name2: string): LoveResult => {
+// Finds the unique characters after removing common ones from both names
+const findUniqueChars = (name1: string, name2: string): number => {
   // Normalize names: lowercase and remove spaces/special characters
   const normalizedName1 = name1.toLowerCase().replace(/[^a-z]/g, "");
   const normalizedName2 = name2.toLowerCase().replace(/[^a-z]/g, "");
   
-  const name1Chars = [...normalizedName1];
-  const name2Chars = [...normalizedName2];
+  // Create arrays from names
+  const chars1 = [...normalizedName1];
+  const chars2 = [...normalizedName2];
   
   // Create copies to track remaining characters
-  const remainingName1 = [...name1Chars];
-  const remainingName2 = [...name2Chars];
+  let remainingChars1 = [...chars1];
+  let remainingChars2 = [...chars2];
   
-  // Remove common characters (each occurrence only once)
-  name1Chars.forEach(char => {
-    const index = remainingName2.indexOf(char);
+  // Remove common characters
+  chars1.forEach(char => {
+    const index = remainingChars2.indexOf(char);
     if (index !== -1) {
-      // Remove the character from remainingName2
-      remainingName2.splice(index, 1);
-      // Also remove from remainingName1
-      const idx = remainingName1.indexOf(char);
+      remainingChars2.splice(index, 1);
+      const idx = remainingChars1.indexOf(char);
       if (idx !== -1) {
-        remainingName1.splice(idx, 1);
+        remainingChars1.splice(idx, 1);
       }
     }
   });
   
-  // Count remaining letters
-  const remainingCount = remainingName1.length + remainingName2.length;
-  const totalLength = normalizedName1.length + normalizedName2.length;
-  
-  // Calculate percentage based on remaining characters
-  // More common characters = higher percentage
-  let percentage = Math.floor(100 * (1 - remainingCount / totalLength));
-  
-  // Add a bit of randomness to make it more fun (±5%)
-  const randomFactor = Math.floor(Math.random() * 11) - 5;
-  percentage = Math.min(100, Math.max(0, percentage + randomFactor));
-  
-  // Handle special cases for matching names
-  if (normalizedName1 === normalizedName2 && normalizedName1.length > 0) {
-    percentage = 100;
+  // Count unique characters
+  return remainingChars1.length + remainingChars2.length;
+};
+
+// Calculate the ASCII sum of combined names
+const calculateAsciiSum = (name1: string, name2: string): number => {
+  const combined = name1.toLowerCase() + name2.toLowerCase();
+  return [...combined].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+};
+
+// FLAMES-inspired elimination process
+const eliminateTerms = (uniqueCharsCount: number): string => {
+  if (uniqueCharsCount === 0) {
+    return "Siblings"; // Edge case: all letters are common
   }
   
-  // Get love term based on percentage
-  const { term, description } = getLoveTerm(percentage);
+  // Start with all terms
+  const termsList = loveTerms.map(item => item.term);
+  let currentIndex = 0;
+  
+  // Elimination process
+  while (termsList.length > 1) {
+    // Calculate position to eliminate
+    currentIndex = (currentIndex + uniqueCharsCount - 1) % termsList.length;
+    
+    // Remove the term at this index
+    termsList.splice(currentIndex, 1);
+    
+    // currentIndex is already at the next position due to deletion
+    if (currentIndex >= termsList.length) {
+      currentIndex = 0;
+    }
+  }
+  
+  // Return the last remaining term
+  return termsList[0];
+};
+
+// Get the percentage based on ASCII sum and term range
+const getPercentageForTerm = (term: string, asciiSum: number): number => {
+  const termInfo = loveTerms.find(t => t.term === term);
+  
+  if (!termInfo) {
+    return 50; // Default fallback
+  }
+  
+  const { minRange, maxRange } = termInfo;
+  const range = maxRange - minRange + 1;
+  
+  return minRange + (asciiSum % range);
+};
+
+// Get term description
+const getTermDescription = (term: string): string => {
+  const termInfo = loveTerms.find(t => t.term === term);
+  return termInfo?.description || "A mysterious connection!";
+};
+
+// Main calculation function
+export const calculateLove = (name1: string, name2: string): LoveResult => {
+  if (name1.trim() === "" || name2.trim() === "") {
+    return {
+      percentage: 0,
+      loveTerm: "Unknown",
+      description: "Please enter both names to calculate."
+    };
+  }
+  
+  // Special case for identical names
+  if (name1.toLowerCase() === name2.toLowerCase() && name1.trim() !== "") {
+    return {
+      percentage: 100,
+      loveTerm: "True Love",
+      description: "You're perfect together! (Or it's just you loving yourself, which is great too!)"
+    };
+  }
+  
+  // Count unique characters
+  const uniqueCharsCount = findUniqueChars(name1, name2);
+  
+  // FLAMES elimination to determine the term
+  const resultTerm = eliminateTerms(uniqueCharsCount);
+  
+  // Calculate ASCII sum for percentage
+  const asciiSum = calculateAsciiSum(name1, name2);
+  
+  // Get percentage based on term range
+  const percentage = getPercentageForTerm(resultTerm, asciiSum);
+  
+  // Get description for the term
+  const description = getTermDescription(resultTerm);
   
   return {
     percentage,
-    loveTerm: term,
-    description,
+    loveTerm: resultTerm,
+    description
   };
 };
